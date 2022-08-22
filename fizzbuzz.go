@@ -11,7 +11,16 @@ import (
 
 var numbers = []byte("0123456789")
 
+const maxIntLen = len("9223372036854775807")
+
 func writeLiteral(l int, out io.Writer) error {
+	// this conversion is much faster than my custom code... haha.
+	// I thought I could beat Printf, as it uses reflection and allocates,
+	// but it's actually faster than it seems.
+	// Also, my implementation is very inneficient for small numbers...
+	//_, err := fmt.Fprint(out, l)
+	//return err
+
 	a := [maxIntLen]int{}
 
 	for i := 0; l != 0; i++ {
@@ -41,13 +50,9 @@ func writeLiteral(l int, out io.Writer) error {
 	return nil
 }
 
-const maxIntLen = len("9223372036854775807")
-
 var fizzBuzz = []byte("FizzBuzz")
 
-func FizzBuzz(start, end int, sep string, out io.Writer) error {
-	sepBytes := []byte(sep)
-
+func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 	for i := start; i <= end; i++ {
 		sliceBegin, sliceEnd := 4, 4
 
@@ -71,7 +76,7 @@ func FizzBuzz(start, end int, sep string, out io.Writer) error {
 		}
 
 		if i < end {
-			if _, err := out.Write(sepBytes); err != nil {
+			if _, err := out.Write(sep); err != nil {
 				return err
 			}
 		}
@@ -90,7 +95,9 @@ func main() {
 		v = math.MaxInt
 	}
 
-	if err := FizzBuzz(1, v, "\n", os.Stdout); err != nil {
+	sep := []byte("\n")
+
+	if err := FizzBuzz(1, v, sep, os.Stdout); err != nil {
 		log.Fatal(err)
 	}
 
