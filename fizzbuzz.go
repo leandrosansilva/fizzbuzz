@@ -54,11 +54,16 @@ func writeLiteral(lastLimit, l int, out io.Writer) (int, error) {
 
 var fizzBuzz = []byte("FizzBuzz")
 
+// FizzBuzz writes on out the FizzBuzz values, separated by sep,
+// in the interval [start, end].
+// In case any error calling out.Write(), the error is bubbled up
+// by FizzBuzz
 func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 	var (
-		limit = maxIntLen
-		err   error
-		buff  = bytes.NewBuffer(make([]byte, maxIntLen))
+		limit    = maxIntLen
+		err      error
+		buffBack [maxIntLen]byte
+		buff     = bytes.NewBuffer(buffBack[:])
 	)
 
 	for i := start; i <= end; i++ {
