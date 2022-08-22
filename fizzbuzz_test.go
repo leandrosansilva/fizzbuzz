@@ -71,7 +71,8 @@ func TestFizzbuzz(t *testing.T) {
 
 		for _, c := range table {
 			var buffer bytes.Buffer
-			FizzBuzz(c.start, c.end, &buffer)
+			err := FizzBuzz(c.start, c.end, ", ", &buffer)
+			So(err, ShouldBeNil)
 			SoMsg(fmt.Sprintf(`start = %d, end = %d, expected = "%s"`, c.start, c.end, c.expected), buffer.String(), ShouldEqual, c.expected)
 		}
 	})
