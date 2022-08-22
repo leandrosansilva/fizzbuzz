@@ -25,7 +25,7 @@ func TestFizzbuzz(t *testing.T) {
 
 			for _, c := range table {
 				var buffer bytes.Buffer
-				writeLiteral(c.n, &buffer)
+				writeLiteral(maxIntLen, c.n, &buffer)
 
 				So(buffer.String(), ShouldEqual, c.s)
 			}

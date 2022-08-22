@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -13,14 +14,15 @@ var numbers = []byte("0123456789")
 
 const maxIntLen = len("9223372036854775807")
 
-func writeLiteral(l int, out io.Writer) error {
-	// this conversion is much faster than my custom code... haha.
-	// I thought I could beat Printf, as it uses reflection and allocates,
-	// but it's actually faster than it seems.
-	// Also, my implementation is very inneficient for small numbers...
-	//_, err := fmt.Fprint(out, l)
-	//return err
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
 
+	return b
+}
+
+func writeLiteral(lastLimit, l int, out io.Writer) (int, error) {
 	a := [maxIntLen]int{}
 
 	for i := 0; l != 0; i++ {
@@ -30,7 +32,7 @@ func writeLiteral(l int, out io.Writer) error {
 		l = v
 	}
 
-	limit := maxIntLen
+	limit := min(lastLimit+2, maxIntLen)
 
 	for {
 		limit--
@@ -43,17 +45,25 @@ func writeLiteral(l int, out io.Writer) error {
 	for i := limit; i >= 0; i-- {
 		r := a[i]
 		if _, err := out.Write(numbers[r : r+1]); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return nil
+	return limit, nil
 }
 
 var fizzBuzz = []byte("FizzBuzz")
 
 func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
+	var (
+		limit = maxIntLen
+		err   error
+		buff  = bytes.NewBuffer(make([]byte, maxIntLen))
+	)
+
 	for i := start; i <= end; i++ {
+		buff.Reset()
+
 		sliceBegin, sliceEnd := 4, 4
 
 		if i%3 == 0 {
@@ -66,19 +76,23 @@ func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 
 		switch {
 		case sliceBegin == sliceEnd:
-			if err := writeLiteral(i, out); err != nil {
+			if limit, err = writeLiteral(limit, i, buff); err != nil {
 				return err
 			}
 		default:
-			if _, err := out.Write(fizzBuzz[sliceBegin:sliceEnd]); err != nil {
+			if _, err = buff.Write(fizzBuzz[sliceBegin:sliceEnd]); err != nil {
 				return err
 			}
 		}
 
 		if i < end {
-			if _, err := out.Write(sep); err != nil {
+			if _, err := buff.Write(sep); err != nil {
 				return err
 			}
+		}
+
+		if _, err := io.Copy(out, buff); err != nil {
+			return err
 		}
 	}
 
