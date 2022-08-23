@@ -6,6 +6,9 @@ import (
 	"io"
 	"log"
 	"math"
+
+	//"net/http"
+	//_ "net/http/pprof"
 	"os"
 	"strconv"
 )
@@ -52,6 +55,24 @@ func writeLiteral(lastLimit, l int, out io.Writer) (int, error) {
 	return limit, nil
 }
 
+func maybeFlush(i, end int, buff *bytes.Buffer, out io.Writer) error {
+	hasEnded := i == end
+
+	timeToFlush := i%512 == 0
+
+	if !(timeToFlush || hasEnded) {
+		return nil
+	}
+
+	if _, err := io.Copy(out, buff); err != nil {
+		return err
+	}
+
+	buff.Reset()
+
+	return nil
+}
+
 var fizzBuzz = []byte("FizzBuzz")
 
 // FizzBuzz writes on out the FizzBuzz values, separated by sep,
@@ -60,15 +81,13 @@ var fizzBuzz = []byte("FizzBuzz")
 // by FizzBuzz
 func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 	var (
-		limit    = maxIntLen
-		err      error
-		buffBack [maxIntLen]byte
-		buff     = bytes.NewBuffer(buffBack[:])
+		limit = maxIntLen
+		err   error
+		buff  = bytes.NewBuffer(make([]byte, 0, 4096))
+		i     = start
 	)
 
-	for i := start; i <= end; i++ {
-		buff.Reset()
-
+	for ; i <= end; i++ {
 		sliceBegin, sliceEnd := 4, 4
 
 		if i%3 == 0 {
@@ -96,7 +115,7 @@ func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 			}
 		}
 
-		if _, err := io.Copy(out, buff); err != nil {
+		if err := maybeFlush(i, end, buff, out); err != nil {
 			return err
 		}
 	}
@@ -113,6 +132,10 @@ func main() {
 	if v == 0 {
 		v = math.MaxInt
 	}
+
+	//go func() {
+	//	log.Println(http.ListenAndServe("localhost:6060", nil))
+	//}()
 
 	sep := []byte("\n")
 
