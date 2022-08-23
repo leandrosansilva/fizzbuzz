@@ -23,9 +23,11 @@ func TestFizzbuzz(t *testing.T) {
 				{n: 1004500746, s: "1004500746"},
 			}
 
+			literalBuffer := [maxIntLen]byte{}
+
 			for _, c := range table {
 				var buffer bytes.Buffer
-				writeLiteral(maxIntLen, c.n, &buffer)
+				writeLiteral(0, c.n, &buffer, literalBuffer[:])
 
 				So(buffer.String(), ShouldEqual, c.s)
 			}

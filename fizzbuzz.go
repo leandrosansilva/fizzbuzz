@@ -7,8 +7,8 @@ import (
 	"log"
 	"math"
 
-	//"net/http"
-	//_ "net/http/pprof"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strconv"
 )
@@ -17,39 +17,40 @@ var numbers = []byte("0123456789")
 
 const maxIntLen = len("9223372036854775807")
 
-func min(a, b int) int {
-	if a < b {
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 
 	return b
 }
 
-func writeLiteral(lastLimit, l int, out io.Writer) (int, error) {
-	a := [maxIntLen]int{}
+func writeLiteral(leftLimit, l int, out io.Writer, literalBuffer []byte) (int, error) {
+	limit := max(leftLimit-2, 0)
+
+	for i := 0; i < maxIntLen; i++ {
+		literalBuffer[i] = 0
+	}
 
 	for i := 0; l != 0; i++ {
 		v := l / 10
 		r := l % 10
-		a[i] = r
+		literalBuffer[maxIntLen-i-1] = numbers[r]
 		l = v
 	}
 
-	limit := min(lastLimit+2, maxIntLen)
-
 	for {
-		limit--
+		limit++
 
-		if a[limit] != 0 {
+		if literalBuffer[limit] != 0 {
 			break
 		}
 	}
 
-	for i := limit; i >= 0; i-- {
-		r := a[i]
-		if _, err := out.Write(numbers[r : r+1]); err != nil {
-			return 0, err
-		}
+	slice := literalBuffer[limit:maxIntLen]
+
+	if _, err := out.Write(slice); err != nil {
+		return 0, err
 	}
 
 	return limit, nil
@@ -81,10 +82,11 @@ var fizzBuzz = []byte("FizzBuzz")
 // by FizzBuzz
 func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 	var (
-		limit = maxIntLen
-		err   error
-		buff  = bytes.NewBuffer(make([]byte, 0, 4096))
-		i     = start
+		limit         = 0
+		err           error
+		buff          = bytes.NewBuffer(make([]byte, 0, 4096))
+		i             = start
+		literalBuffer = [maxIntLen]byte{} // NOTE: always escapes to the heap when used on bytes.Buffer.Write()
 	)
 
 	for ; i <= end; i++ {
@@ -100,7 +102,7 @@ func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 
 		switch {
 		case sliceBegin == sliceEnd:
-			if limit, err = writeLiteral(limit, i, buff); err != nil {
+			if limit, err = writeLiteral(limit, i, buff, literalBuffer[:]); err != nil {
 				return err
 			}
 		default:
@@ -133,9 +135,9 @@ func main() {
 		v = math.MaxInt
 	}
 
-	//go func() {
-	//	log.Println(http.ListenAndServe("localhost:6060", nil))
-	//}()
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	sep := []byte("\n")
 
