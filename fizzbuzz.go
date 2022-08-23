@@ -76,6 +76,20 @@ func maybeFlush(i, end int, buff *bytes.Buffer, out io.Writer) error {
 
 var fizzBuzz = []byte("FizzBuzz")
 
+func fizzOrBuzz(i int) ([]byte, bool) {
+	sliceBegin, sliceEnd := 4, 4
+
+	if i%3 == 0 {
+		sliceBegin = 0
+	}
+
+	if i%5 == 0 {
+		sliceEnd = len(fizzBuzz)
+	}
+
+	return fizzBuzz[sliceBegin:sliceEnd], sliceBegin == sliceEnd
+}
+
 // FizzBuzz writes on out the FizzBuzz values, separated by sep,
 // in the interval [start, end].
 // In case any error calling out.Write(), the error is bubbled up
@@ -90,23 +104,13 @@ func FizzBuzz(start, end int, sep []byte, out io.Writer) error {
 	)
 
 	for ; i <= end; i++ {
-		sliceBegin, sliceEnd := 4, 4
-
-		if i%3 == 0 {
-			sliceBegin = 0
-		}
-
-		if i%5 == 0 {
-			sliceEnd = len(fizzBuzz)
-		}
-
-		switch {
-		case sliceBegin == sliceEnd:
+		switch slice, isLiteral := fizzOrBuzz(i); isLiteral {
+		case true:
 			if limit, err = writeLiteral(limit, i, buff, literalBuffer[:]); err != nil {
 				return err
 			}
 		default:
-			if _, err = buff.Write(fizzBuzz[sliceBegin:sliceEnd]); err != nil {
+			if _, err = buff.Write(slice); err != nil {
 				return err
 			}
 		}
